@@ -84,7 +84,7 @@ func main() {
 		})*/
 
 	// 模板解析
-	r.LoadHTMLFiles("./templates/index.html", "./templates/login.html")
+	r.LoadHTMLFiles("./templates/index.html", "./templates/login.html", "./templates/upload.html")
 	//r.LoadHTMLFiles("./login.html")
 	//r.LoadHTMLGlob("templates/**/*")
 
@@ -190,8 +190,8 @@ func main() {
 	})
 	// 结构体
 	type UserInfo struct {
-		Username string `form:"username"` // 需要与请求参数绑定
-		Password string `form:"password"`
+		Username string `form:"username" json:"ume"` // 需要与请求参数绑定
+		Password string `form:"password" json:"pwd"`
 	}
 
 	r.GET("/user", func(c *gin.Context) {
@@ -218,7 +218,7 @@ func main() {
 			})
 		}
 	})
-	// 利用 post请求
+	// 利用 form表单与请求参数绑定
 	r.POST("/form", func(c *gin.Context) {
 		var u UserInfo          // 声明一个结构体变量
 		err := c.ShouldBind(&u) // 结构体与请求参数进行绑定
@@ -232,6 +232,56 @@ func main() {
 				"message": "ok",
 			})
 		}
+	})
+	//  json与请求参数绑定
+	r.POST("/json", func(c *gin.Context) {
+		var u UserInfo          // 声明一个结构体变量
+		err := c.ShouldBind(&u) // 结构体与请求参数进行绑定
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+		} else {
+			fmt.Printf("%#v\n", u)
+			c.JSON(http.StatusOK, gin.H{
+				"message": "ok",
+			})
+		}
+	})
+	// 上传文件 demo
+	r.GET("/upload", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "upload.html", nil)
+	})
+	// 单文件上传
+	/*	r.POST("/upload", func(c *gin.Context) {
+		file, err := c.FormFile("f1")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": err.Error(),
+			})
+		}
+		// 拼接文件的存储路径
+		dst := fmt.Sprintf("./uploaded/%s", file.Filename)
+		// 存储文件
+		c.SaveUploadedFile(file, dst)
+		c.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("%s uploaded!", file.Filename),
+		})
+	})*/
+	// 多文件上传
+	r.POST("/upload", func(c *gin.Context) {
+		form, _ := c.MultipartForm()
+		files := form.File["f1"]
+
+		fmt.Println(files)
+
+		for index, file := range files {
+			dst := fmt.Sprintf("./uploaded/%d_%s", index, file.Filename)
+			c.SaveUploadedFile(file, dst)
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("%d files uploaded!", len(files)),
+		})
 	})
 
 	r.Run()
